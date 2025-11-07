@@ -1,7 +1,6 @@
 import discord
 from discord.ext import commands, tasks
 import os
-from pathlib import Path
 import requests
 from bs4 import BeautifulSoup
 import json
@@ -13,7 +12,7 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 
 if not TOKEN:
     print("❌ ERROR: DISCORD_TOKEN not found!")
-    print("Please add DISCORD_TOKEN as a Secret in Replit")
+    print("Please add DISCORD_TOKEN as environment variable")
     exit(1)
 
 print(f"✅ Token loaded successfully")
@@ -67,20 +66,20 @@ def scrape_unstop():
         response = requests.get(url, headers=headers, timeout=15)
         response.raise_for_status()
         soup = BeautifulSoup(response.content, 'html.parser')
-
+        
         # Find all opportunity cards
         cards = soup.find_all('div', {'class': re.compile('.*challenge.*|.*opportunity.*')})
-
+        
         for card in cards[:15]:
             try:
                 title_tag = card.find(['h2', 'h3', 'h4', 'a'])
                 if not title_tag:
                     continue
-
+                
                 title = title_tag.get_text(strip=True)
                 if not title or len(title) < 5:
                     continue
-
+                
                 link_tag = card.find('a', href=True)
                 if link_tag:
                     link = link_tag['href']
@@ -88,7 +87,7 @@ def scrape_unstop():
                         link = 'https://unstop.com' + link
                 else:
                     continue
-
+                
                 if link and title:
                     opportunities.append({
                         'title': title[:150],
@@ -99,11 +98,11 @@ def scrape_unstop():
                     })
             except Exception as e:
                 continue
-
+        
         print(f"  ✅ Found {len(opportunities)} on Unstop")
     except Exception as e:
         print(f"  ❌ Error scraping Unstop: {e}")
-
+    
     return opportunities
 
 def scrape_devpost():
@@ -118,19 +117,19 @@ def scrape_devpost():
         response = requests.get(url, headers=headers, timeout=15)
         response.raise_for_status()
         soup = BeautifulSoup(response.content, 'html.parser')
-
+        
         hackathons = soup.find_all('div', {'class': re.compile('.*challenge.*')})
-
+        
         for hack in hackathons[:15]:
             try:
                 title_tag = hack.find(['h2', 'h3', 'a'])
                 if not title_tag:
                     continue
-
+                
                 title = title_tag.get_text(strip=True)
                 if not title or len(title) < 5:
                     continue
-
+                
                 link_tag = hack.find('a', href=True)
                 if link_tag:
                     link = link_tag['href']
@@ -138,7 +137,7 @@ def scrape_devpost():
                         link = 'https://devpost.com' + link
                 else:
                     continue
-
+                
                 if link and title and 'devpost' in link:
                     opportunities.append({
                         'title': title[:150],
@@ -149,11 +148,11 @@ def scrape_devpost():
                     })
             except Exception as e:
                 continue
-
+        
         print(f"  ✅ Found {len(opportunities)} on Devpost")
     except Exception as e:
         print(f"  ❌ Error scraping Devpost: {e}")
-
+    
     return opportunities
 
 def scrape_internshala():
@@ -168,19 +167,19 @@ def scrape_internshala():
         response = requests.get(url, headers=headers, timeout=15)
         response.raise_for_status()
         soup = BeautifulSoup(response.content, 'html.parser')
-
+        
         listings = soup.find_all(['div', 'article'], {'class': re.compile('.*internship.*|.*listing.*')})
-
+        
         for listing in listings[:15]:
             try:
                 title_tag = listing.find(['h2', 'h3', 'h4', 'a'])
                 if not title_tag:
                     continue
-
+                
                 title = title_tag.get_text(strip=True)
                 if not title or len(title) < 5:
                     continue
-
+                
                 link_tag = listing.find('a', href=True)
                 if link_tag:
                     link = link_tag['href']
@@ -188,7 +187,7 @@ def scrape_internshala():
                         link = 'https://internshala.com' + link
                 else:
                     continue
-
+                
                 if link and title:
                     opportunities.append({
                         'title': title[:150],
@@ -199,11 +198,11 @@ def scrape_internshala():
                     })
             except Exception as e:
                 continue
-
+        
         print(f"  ✅ Found {len(opportunities)} on Internshala")
     except Exception as e:
         print(f"  ❌ Error scraping Internshala: {e}")
-
+    
     return opportunities
 
 def scrape_angel_list():
@@ -218,19 +217,19 @@ def scrape_angel_list():
         response = requests.get(url, headers=headers, timeout=15)
         response.raise_for_status()
         soup = BeautifulSoup(response.content, 'html.parser')
-
+        
         jobs = soup.find_all(['div', 'article'], {'class': re.compile('.*job.*|.*listing.*')})
-
+        
         for job in jobs[:10]:
             try:
                 title_tag = job.find(['h2', 'h3', 'h4', 'a'])
                 if not title_tag:
                     continue
-
+                
                 title = title_tag.get_text(strip=True)
                 if not title or len(title) < 5:
                     continue
-
+                
                 link_tag = job.find('a', href=True)
                 if link_tag:
                     link = link_tag['href']
@@ -238,7 +237,7 @@ def scrape_angel_list():
                         link = 'https://wellfound.com' + link
                 else:
                     continue
-
+                
                 if link and title:
                     opportunities.append({
                         'title': title[:150],
@@ -249,48 +248,59 @@ def scrape_angel_list():
                     })
             except Exception as e:
                 continue
-
+        
         print(f"  ✅ Found {len(opportunities)} on AngelList")
     except Exception as e:
         print(f"  ❌ Error scraping AngelList: {e}")
-
+    
     return opportunities
 
 def get_all_opportunities():
-    """Fetch from all sources"""
+    """Fetch from all sources and remove duplicates"""
     print("📡 Fetching opportunities...")
     all_opps = []
-
+    
     try:
         all_opps.extend(scrape_unstop())
     except:
         pass
-
+    
     try:
         all_opps.extend(scrape_devpost())
     except:
         pass
-
+    
     try:
         all_opps.extend(scrape_internshala())
     except:
         pass
-
+    
     try:
         all_opps.extend(scrape_angel_list())
     except:
         pass
-
+    
     # Remove duplicates based on link
-    seen = set()
+    seen_links = set()
     unique_opps = []
     for opp in all_opps:
-        if opp['link'] not in seen:
-            seen.add(opp['link'])
+        link_key = opp['link'].lower().strip()
+        if link_key not in seen_links:
+            seen_links.add(link_key)
             unique_opps.append(opp)
-
-    print(f"📊 Total: {len(unique_opps)} unique opportunities found\n")
-    return unique_opps
+    
+    # Remove similar titles from same source
+    final_opps = []
+    seen_titles = set()
+    for opp in unique_opps:
+        title_key = opp['title'].lower()[:40]  # First 40 chars
+        key = f"{opp['source']}_{title_key}"
+        if key not in seen_titles:
+            seen_titles.add(key)
+            final_opps.append(opp)
+    
+    print(f"📊 Total: {len(final_opps)} unique opportunities (from {len(all_opps)} total)\n")
+    return final_opps
 
 # ============ BOT EVENTS ============
 @bot.event
@@ -300,7 +310,7 @@ async def on_ready():
     print(f'Bot Name: {bot.user}')
     print(f'Connected to {len(bot.guilds)} server(s)')
     print(f'{"="*50}\n')
-
+    
     if not check_opportunities.is_running():
         check_opportunities.start()
         print('✅ Scheduled checker started (checks every 2 hours)')
@@ -314,15 +324,15 @@ async def on_command_error(ctx, error):
 async def check_opportunities():
     if CHANNEL_ID is None:
         return
-
+    
     channel = bot.get_channel(CHANNEL_ID)
     if not channel:
         return
-
+    
     print("⏰ Scheduled check running...")
     opportunities = get_all_opportunities()
     new_count = 0
-
+    
     for opp in opportunities:
         if is_new_opportunity(opp['link']):
             try:
@@ -333,7 +343,7 @@ async def check_opportunities():
                     color=discord.Color.green()
                 )
                 embed.set_footer(text="Apply now!")
-
+                
                 await channel.send(embed=embed)
                 save_opportunity(opp['title'], opp['link'], opp['type'])
                 new_count += 1
@@ -360,14 +370,14 @@ async def set_channel(ctx):
 async def fetch_opportunities(ctx):
     await ctx.send("🔍 Searching for opportunities... (This may take a moment)")
     opps = get_all_opportunities()
-
+    
     if not opps:
         await ctx.send("❌ No opportunities found. Please try again later.")
         return
-
+    
     sent_count = 0
-    max_show = min(15, len(opps))
-
+    max_show = min(10, len(opps))  # Show only 10
+    
     for opp in opps[:max_show]:
         try:
             embed = discord.Embed(
@@ -381,8 +391,11 @@ async def fetch_opportunities(ctx):
             sent_count += 1
         except:
             pass
-
-    await ctx.send(f"\n✅ Displayed {sent_count} opportunities!")
+    
+    if sent_count > 0:
+        await ctx.send(f"\n✅ Displayed {sent_count} unique opportunities!")
+    else:
+        await ctx.send("❌ No opportunities found.")
 
 @bot.command(name='status')
 async def status(ctx):
