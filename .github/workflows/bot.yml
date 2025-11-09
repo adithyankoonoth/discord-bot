@@ -4,13 +4,13 @@ on:
   push:
     branches: [ main ]
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '*/30 * * * *'  # Run every 30 minutes (keeps it alive)
   workflow_dispatch:
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 360  # 6 hours per run
 
     steps:
     - uses: actions/checkout@v3
@@ -28,4 +28,5 @@ jobs:
     - name: Run Discord Bot
       env:
         DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
-      run: python bot.py
+      run: |
+        timeout 6h python bot.py || echo "Bot stopped after 6 hours, will restart automatically"
